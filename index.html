@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>web transport client test</title>
+        <style>
+            body {
+                font-family: monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>web transport client test</h1>
+        <script>
+            function log(msg) {
+                if (typeof msg === 'object') msg = JSON.stringify(msg);
+                const el = document.createElement('p');
+                el.appendChild(document.createTextNode(msg));
+                document.body.appendChild(el);
+            }
+
+            const BASE64_HASH = 'cUEiyS4ciHN/pk1vdSVsnXQ97EHz+iy7A4Qob9Lir3U=';
+
+            function base64ToArrayBuffer(base64) {
+                const binStr = atob(base64);
+                const bytes = new Uint8Array(binStr.length);
+                for (let i = 0; i < binStr.length; ++i) bytes[i] = binStr.charCodeAt(i);
+                return bytes.buffer;
+            }
+
+            (async () => {
+                log(1);
+
+                const transport = new WebTransport(
+                    'https://localhost:4433',
+                    {
+                        serverCertificateHashes: [ { algorithm: 'sha-256', value: base64ToArrayBuffer(BASE64_HASH) } ],
+                    },
+                );
+                await transport.ready;
+                log('ready');
+
+                /* const num = Math.floor(1000 * Math.random());
+                console.log('num', num);
+                transport.datagrams.writable.getWriter().write(new TextEncoder().encode(`hello ${num}`)); */
+
+                // Create a bidirectional stream
+                const stream = await transport.createBidirectionalStream();
+
+                // Send data from the client to the server
+                await stream.writable.getWriter().write(new TextEncoder().encode("hello"));
+
+                // Read data reply from the server
+                let data = await stream.readable.getReader().read();
+                log(data);
+
+                log(2);
+            })();
+        </script>
+    </body>
+</html>
